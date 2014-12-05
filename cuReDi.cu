@@ -52,6 +52,12 @@ int main(int argc, char **argv) {
   ok = fscanf(fp, "%d", &numCycles);
   ok = fscanf(fp, "%d", &width);
   ok = fscanf(fp, "%d", &numInit);
+#if !SHARED
+  printf("Global - ");
+#elif SHARED
+  printf("Shared - ");
+#endif
+  printf("TileWidth %i - ", TILEWIDTH);
   printf("# cycles %d width %d # initializations %d\n", numCycles, width, numInit);
 
   u0 = (double *) calloc(width * width, sizeof(double));
@@ -80,8 +86,8 @@ int main(int argc, char **argv) {
   dim3 grid((width-2)/TILEWIDTH, (width-2)/TILEWIDTH, 1);
   dim3 block(TILEWIDTH, TILEWIDTH, 1);
 
-  printf("%i, %i\n", grid.x, grid.y);
-  printf("%i, %i\n", block.x, block.y);
+  // printf("%i, %i\n", grid.x, grid.y);
+  // printf("%i, %i\n", block.x, block.y);
 
   for (cycle=0; cycle<numCycles; cycle++) {
 #if !SHARED
@@ -107,8 +113,10 @@ int main(int argc, char **argv) {
   gettimeofday(&tv, NULL);
   double t1 = tv.tv_sec*1e6 + tv.tv_usec;
 
-  printf("Elapsed time = %f\n", t1-t0);
+  printf("Elapsed time = %f\n\n", t1-t0);
+#if DUMP
   cuDumpGrid(u1, v1, width);
+#endif
 
   cudaFree(d_u0);
   cudaFree(d_u1);
