@@ -68,6 +68,20 @@ void dumpGrid(double g[], double h[], int w) {
   fclose(fp);
 }
 
+void cuDumpGrid(double g[], double h[], int w) {
+  int i, j;
+  FILE *fp;
+
+  fp = fopen("cudump.out", "w");
+  
+  for (i=0; i<w; i++) {
+    for (j=0; j<w; j++) {
+      fprintf(fp, "%d %d %f %f\n", i, j, dataAt(g, i, j, w), dataAt(h, i, j, w));
+    }
+  }
+  fclose(fp);
+}
+
 void initGrid(double u0[], double u1[], double v0[], double v1[], int w) {
   int i, j;
 

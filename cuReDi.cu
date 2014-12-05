@@ -23,7 +23,8 @@
 #include "ReDiUtils.c"
 #include "cuReDiUtils.cu"
 
-__global__ void cuUpdateGridGlobal(double u[], double tu[], double v[], double tv[], int w);
+__global__ void cuUpdateGridGlobal(double *u, double *tu, double *v, double *tv, int w);
+__global__ void cuUpdateGridShared(double *u, double *tu, double *v, double *tv, int w);
 
 int main(int argc, char **argv) {
   int width;
@@ -71,9 +72,9 @@ int main(int argc, char **argv) {
     dataAt(v1, i, j, width) = inTemp;
   }
 
-  cudaMemcpy(d_u0, u0, width * width * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_u0, u1, width * width * sizeof(double), cudaMemcpyHostToDevice);
   cudaMemcpy(d_u1, u1, width * width * sizeof(double), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_v0, v0, width * width * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_v0, v1, width * width * sizeof(double), cudaMemcpyHostToDevice);
   cudaMemcpy(d_v1, v1, width * width * sizeof(double), cudaMemcpyHostToDevice);
 
   dim3 grid((width-2)/TILEWIDTH, (width-2)/TILEWIDTH, 1);
@@ -83,7 +84,11 @@ int main(int argc, char **argv) {
   printf("%i, %i\n", block.x, block.y);
 
   for (cycle=0; cycle<numCycles; cycle++) {
+#if !SHARED
     cuUpdateGridGlobal<<< grid, block >>>(d_u0, d_u1, d_v0, d_v1, width);
+#elif SHARED
+    cuUpdateGridShared<<< grid, block >>>(d_u0, d_u1, d_v0, d_v1, width);
+#endif
     d_tptr = d_u0;
     d_u0 = d_u1;
     d_u1 = d_tptr;
@@ -103,7 +108,7 @@ int main(int argc, char **argv) {
   double t1 = tv.tv_sec*1e6 + tv.tv_usec;
 
   printf("Elapsed time = %f\n", t1-t0);
-  dumpGrid(u1, v1, width);
+  cuDumpGrid(u1, v1, width);
 
   cudaFree(d_u0);
   cudaFree(d_u1);
